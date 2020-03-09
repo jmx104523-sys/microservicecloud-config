@@ -1,7 +1,7 @@
 spring：
-  profiles: 
-   active:
-   - dev
+  profiles:
+    active:
+    - dev
 ---
 spring:
   profiles: dev
