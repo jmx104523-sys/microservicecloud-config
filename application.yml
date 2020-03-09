@@ -8,6 +8,6 @@ spring:
     name: microservicecloud-config-stguigu-dev
 ---
 spring:
-  profiles: dev
+  profiles: test
   application:
     name: microservicecloud-config-atguigu-test
