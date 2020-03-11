@@ -4,9 +4,6 @@ spring:
 ---
 server:
   port: 8001
-
-
-
 spring:
    profiles: dev
    application:
@@ -39,14 +36,10 @@ info:
   app.name: atguigu-microservicecloud-springcoudconfig01
   company.name: www.atguigu.com
   build.artifactId: ${project.artifactId}
-
   build.version: ${project.version}
 ---
 server:
   port: 8001
-
-
-
 spring:
    profiles: test
    application:
@@ -79,5 +72,4 @@ info:
   app.name: atguigu-microservicecloud-springcoudconfig01
   company.name: www.atguigu.com
   build.artifactId: ${project.artifactId}
-
   build.version: ${project.version}
