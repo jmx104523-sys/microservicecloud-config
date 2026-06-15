@@ -1,0 +1,44 @@
+# 复制为 config.yaml 后按需修改
+
+api:
+  # 内部核验接口地址（必填）
+  url: "https://your-internal-api.example.com/verify"
+  method: "POST"          # GET / POST / PUT
+  timeout: 15             # 秒
+
+  # 请求头（按需增删）
+  headers:
+    Content-Type: "application/x-www-form-urlencoded"
+    User-Agent: "BatchVerify/1.0"
+    # Authorization: "Bearer your_token_here"
+
+  # 请求体字段映射：左侧为接口参数名，右侧为 CSV 列名
+  payload_fields:
+    realName: "realName"
+    idCard: "idCard"
+
+  # 额外固定参数（每条请求都会带上）
+  extra_payload: {}
+
+input:
+  csv_path: "data/sample.csv"
+  encoding: "utf-8-sig"
+  # CSV 列名（需与 payload_fields 右侧一致）
+  columns:
+  - realName
+  - idCard
+
+output:
+  dir: "output"
+  # 结果文件名前缀，实际文件带时间戳
+  prefix: "result"
+
+concurrency:
+  workers: 8              # 线程数
+  max_retries: 2          # 失败重试次数
+  retry_delay: 1.0        # 重试间隔（秒）
+  qps: 0                  # 限速，0 表示不限速
+
+validation:
+  # 请求前做本地身份证号格式校验，不合法则跳过 API 调用
+  validate_id_card: true
