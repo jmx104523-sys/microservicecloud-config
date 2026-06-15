@@ -21,7 +21,11 @@ api:
   extra_payload: {}
 
 input:
+  # 输入 TXT（相对路径基于 config.yaml 所在目录）
   txt_path: "data/sample.txt"
+  # 也可用本机绝对路径，例如：
+  # txt_path: "D:/核验数据/input.txt"
+  # txt_path: "/Users/你/核验数据/input.txt"
   encoding: "utf-8"
   # 每行格式：姓名 身份证号（也支持逗号/制表符分隔）
   # delimiter: auto | comma | tab | space
@@ -30,8 +34,12 @@ input:
   skip_header: false
 
 output:
+  # 结果输出目录（运行后自动创建，生成在本地）
   dir: "output"
-  # 结果文件名前缀，实际文件带时间戳
+  # 也可用本机绝对路径，例如：
+  # dir: "D:/核验数据/output"
+  # 结果文件：output/result_时间戳.csv
+  # 汇总文件：output/result_时间戳_summary.json
   prefix: "result"
 
 concurrency:

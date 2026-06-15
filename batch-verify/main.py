@@ -34,15 +34,16 @@ def main() -> None:
     )
 
     config = load_config(args.config)
+    base_dir = Path(args.config).resolve().parent
     if args.input:
         config["input"]["txt_path"] = args.input
     if args.workers:
         config["concurrency"]["workers"] = args.workers
 
     try:
-        verifier = BatchVerifier(config)
+        verifier = BatchVerifier(config, base_dir=base_dir)
         out_path = verifier.run()
-        print(f"完成，结果文件: {out_path}")
+        print(f"完成，结果文件: {out_path.resolve()}")
     except Exception as exc:
         logging.error("%s", exc)
         sys.exit(1)

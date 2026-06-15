@@ -56,8 +56,9 @@ class RateLimiter:
 
 
 class BatchVerifier:
-    def __init__(self, config: dict[str, Any]) -> None:
+    def __init__(self, config: dict[str, Any], base_dir: str | Path = ".") -> None:
         self.config = config
+        self.base_dir = Path(base_dir).resolve()
         self.api = config["api"]
         self.input_cfg = config["input"]
         self.output_cfg = config["output"]
@@ -66,6 +67,12 @@ class BatchVerifier:
             "validate_id_card", True
         )
         self.rate_limiter = RateLimiter(float(self.concurrency.get("qps", 0)))
+
+    def _resolve_path(self, path_str: str) -> Path:
+        path = Path(path_str)
+        if path.is_absolute():
+            return path
+        return self.base_dir / path
 
     def _parse_txt_line(self, line: str) -> dict[str, str] | None:
         line = line.strip()
@@ -91,9 +98,12 @@ class BatchVerifier:
         return {"realName": " ".join(parts[:-1]), "idCard": parts[-1]}
 
     def load_tasks(self) -> list[TaskItem]:
-        txt_path = Path(self.input_cfg["txt_path"])
+        txt_path = self._resolve_path(self.input_cfg["txt_path"])
         encoding = self.input_cfg.get("encoding", "utf-8")
         skip_header = bool(self.input_cfg.get("skip_header", False))
+
+        if not txt_path.exists():
+            raise FileNotFoundError(f"输入文件不存在: {txt_path}")
 
         tasks: list[TaskItem] = []
         with txt_path.open("r", encoding=encoding) as f:
@@ -190,7 +200,10 @@ class BatchVerifier:
 
         workers = int(self.concurrency.get("workers", 4))
         results: list[TaskResult] = []
+        out_dir = self._resolve_path(self.output_cfg.get("dir", "output"))
 
+        logger.info("输入文件: %s", self._resolve_path(self.input_cfg["txt_path"]))
+        logger.info("输出目录: %s", out_dir)
         logger.info("共 %s 条，线程数 %s", len(tasks), workers)
 
         with ThreadPoolExecutor(max_workers=workers) as executor:
@@ -210,7 +223,7 @@ class BatchVerifier:
         return self._write_results(sorted(results, key=lambda r: r.row_index))
 
     def _write_results(self, results: list[TaskResult]) -> Path:
-        out_dir = Path(self.output_cfg.get("dir", "output"))
+        out_dir = self._resolve_path(self.output_cfg.get("dir", "output"))
         out_dir.mkdir(parents=True, exist_ok=True)
         prefix = self.output_cfg.get("prefix", "result")
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
