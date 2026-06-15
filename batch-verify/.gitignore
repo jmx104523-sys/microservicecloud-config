@@ -2,6 +2,6 @@ __pycache__/
 *.pyc
 .venv/
 venv/
-output/
 *.log
-config.yaml
+result_*.csv
+result_*_summary.json

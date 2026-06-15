@@ -1,5 +1,3 @@
-# 部署到 D:\batch-verify\ 后使用同目录下的 config.yaml
-
 api:
   url: "https://your-internal-api.example.com/verify"
   method: "POST"

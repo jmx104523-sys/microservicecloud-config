@@ -12,7 +12,7 @@ def main() -> None:
         "-c",
         "--config",
         default="config.yaml",
-        help="配置文件路径，默认 config.yaml",
+        help="配置文件路径，默认与本脚本同目录下的 config.yaml",
     )
     parser.add_argument(
         "-i",
@@ -33,8 +33,12 @@ def main() -> None:
         datefmt="%H:%M:%S",
     )
 
-    config = load_config(args.config)
-    base_dir = Path(args.config).resolve().parent
+    base_dir = Path(__file__).resolve().parent
+    config_path = Path(args.config)
+    if not config_path.is_absolute():
+        config_path = base_dir / config_path
+
+    config = load_config(config_path)
     if args.input:
         config["input"]["txt_path"] = args.input
     if args.workers:
