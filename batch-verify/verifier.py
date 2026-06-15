@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import json
 import logging
+import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
@@ -66,23 +67,48 @@ class BatchVerifier:
         )
         self.rate_limiter = RateLimiter(float(self.concurrency.get("qps", 0)))
 
+    def _parse_txt_line(self, line: str) -> dict[str, str] | None:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            return None
+
+        delimiter = self.input_cfg.get("delimiter", "auto")
+        if delimiter == "auto":
+            parts = [part for part in re.split(r"[\s,，\t]+", line) if part]
+        elif delimiter == "comma":
+            parts = [part.strip() for part in line.split(",") if part.strip()]
+        elif delimiter == "tab":
+            parts = [part.strip() for part in line.split("\t") if part.strip()]
+        elif delimiter == "space":
+            parts = [part for part in line.split() if part]
+        else:
+            parts = [part.strip() for part in line.split(delimiter) if part.strip()]
+
+        if not parts:
+            return None
+        if len(parts) == 1:
+            return {"realName": "", "idCard": parts[0]}
+        return {"realName": " ".join(parts[:-1]), "idCard": parts[-1]}
+
     def load_tasks(self) -> list[TaskItem]:
-        csv_path = Path(self.input_cfg["csv_path"])
-        encoding = self.input_cfg.get("encoding", "utf-8-sig")
-        columns = self.input_cfg["columns"]
+        txt_path = Path(self.input_cfg["txt_path"])
+        encoding = self.input_cfg.get("encoding", "utf-8")
+        skip_header = bool(self.input_cfg.get("skip_header", False))
 
         tasks: list[TaskItem] = []
-        with csv_path.open("r", encoding=encoding, newline="") as f:
-            reader = csv.DictReader(f)
-            for idx, row in enumerate(reader, start=2):
-                data = {col: (row.get(col) or "").strip() for col in columns}
-                tasks.append(TaskItem(row_index=idx, data=data))
+        with txt_path.open("r", encoding=encoding) as f:
+            for idx, raw_line in enumerate(f, start=1):
+                if skip_header and idx == 1:
+                    continue
+                data = self._parse_txt_line(raw_line)
+                if data:
+                    tasks.append(TaskItem(row_index=idx, data=data))
         return tasks
 
     def _build_payload(self, data: dict[str, str]) -> dict[str, str]:
         payload = dict(self.api.get("extra_payload") or {})
-        for api_field, csv_col in self.api["payload_fields"].items():
-            payload[api_field] = data.get(csv_col, "")
+        for api_field, field_name in self.api["payload_fields"].items():
+            payload[api_field] = data.get(field_name, "")
         return payload
 
     def _request_once(self, payload: dict[str, str]) -> tuple[int, str]:
@@ -160,7 +186,7 @@ class BatchVerifier:
     def run(self) -> Path:
         tasks = self.load_tasks()
         if not tasks:
-            raise ValueError("CSV 中没有可处理的数据")
+            raise ValueError("TXT 中没有可处理的数据")
 
         workers = int(self.concurrency.get("workers", 4))
         results: list[TaskResult] = []

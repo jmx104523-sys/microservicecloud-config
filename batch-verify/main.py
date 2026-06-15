@@ -17,7 +17,7 @@ def main() -> None:
     parser.add_argument(
         "-i",
         "--input",
-        help="覆盖配置中的 CSV 输入路径",
+        help="覆盖配置中的 TXT 输入路径",
     )
     parser.add_argument(
         "-w",
@@ -35,7 +35,7 @@ def main() -> None:
 
     config = load_config(args.config)
     if args.input:
-        config["input"]["csv_path"] = args.input
+        config["input"]["txt_path"] = args.input
     if args.workers:
         config["concurrency"]["workers"] = args.workers
 

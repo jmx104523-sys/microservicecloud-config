@@ -12,7 +12,7 @@ api:
     User-Agent: "BatchVerify/1.0"
     # Authorization: "Bearer your_token_here"
 
-  # 请求体字段映射：左侧为接口参数名，右侧为 CSV 列名
+  # 请求体字段映射：左侧为接口参数名，右侧为数据字段名
   payload_fields:
     realName: "realName"
     idCard: "idCard"
@@ -21,12 +21,13 @@ api:
   extra_payload: {}
 
 input:
-  csv_path: "data/sample.csv"
-  encoding: "utf-8-sig"
-  # CSV 列名（需与 payload_fields 右侧一致）
-  columns:
-  - realName
-  - idCard
+  txt_path: "data/sample.txt"
+  encoding: "utf-8"
+  # 每行格式：姓名 身份证号（也支持逗号/制表符分隔）
+  # delimiter: auto | comma | tab | space
+  delimiter: "auto"
+  # 首行是否为表头（如：姓名 身份证号）
+  skip_header: false
 
 output:
   dir: "output"
