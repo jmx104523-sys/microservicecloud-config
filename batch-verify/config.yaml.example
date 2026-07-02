@@ -13,7 +13,7 @@ api:
   extra_payload: {}
 
 input:
-  txt_path: "input.txt"
+  txt_path: "sfz.txt"
   encoding: "utf-8"
   delimiter: "auto"
   skip_header: false

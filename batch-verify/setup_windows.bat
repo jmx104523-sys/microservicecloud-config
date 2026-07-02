@@ -13,6 +13,8 @@ if not exist "%TARGET%" (
     echo 已创建目录 %TARGET%
 )
 
+copy /Y "%SRC%sfz_reader.py" "%TARGET%\" >nul
+copy /Y "%SRC%sfz.txt" "%TARGET%\" >nul
 copy /Y "%SRC%main.py" "%TARGET%\" >nul
 copy /Y "%SRC%verifier.py" "%TARGET%\" >nul
 copy /Y "%SRC%id_card.py" "%TARGET%\" >nul
@@ -23,6 +25,8 @@ copy /Y "%SRC%install.bat" "%TARGET%\" >nul
 copy /Y "%SRC%run.bat" "%TARGET%\" >nul
 
 echo 已复制以下文件到 %TARGET% :
+echo   sfz_reader.py
+echo   sfz.txt
 echo   main.py
 echo   verifier.py
 echo   id_card.py

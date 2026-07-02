@@ -11,7 +11,8 @@ api:
   extra_payload: {}
 
 input:
-  txt_path: "input.txt"
+  # 输入文件：支持 input.txt（姓名+身份证）或 sfz.txt（仅身份证）
+  txt_path: "sfz.txt"
   encoding: "utf-8"
   delimiter: "auto"
   skip_header: false
