@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.log
+result_*.csv
+result_*_summary.json

@@ -1,0 +1,31 @@
+api:
+  url: "https://your-internal-api.example.com/verify"
+  method: "POST"
+  timeout: 15
+  headers:
+    Content-Type: "application/x-www-form-urlencoded"
+    User-Agent: "BatchVerify/1.0"
+  payload_fields:
+    realName: "realName"
+    idCard: "idCard"
+  extra_payload: {}
+
+input:
+  # 输入文件：支持 input.txt（姓名+身份证）或 sfz.txt（仅身份证）
+  txt_path: "sfz.txt"
+  encoding: "utf-8"
+  delimiter: "auto"
+  skip_header: false
+
+output:
+  dir: "."
+  prefix: "result"
+
+concurrency:
+  workers: 8
+  max_retries: 2
+  retry_delay: 1.0
+  qps: 0
+
+validation:
+  validate_id_card: true

@@ -1,0 +1,32 @@
+# 部署到 D:\batch-verify\ 后使用同目录下的 config.yaml
+
+api:
+  url: "https://your-internal-api.example.com/verify"
+  method: "POST"
+  timeout: 15
+  headers:
+    Content-Type: "application/x-www-form-urlencoded"
+    User-Agent: "BatchVerify/1.0"
+  payload_fields:
+    realName: "realName"
+    idCard: "idCard"
+  extra_payload: {}
+
+input:
+  txt_path: "sfz.txt"
+  encoding: "utf-8"
+  delimiter: "auto"
+  skip_header: false
+
+output:
+  dir: "."
+  prefix: "result"
+
+concurrency:
+  workers: 8
+  max_retries: 2
+  retry_delay: 1.0
+  qps: 0
+
+validation:
+  validate_id_card: true
