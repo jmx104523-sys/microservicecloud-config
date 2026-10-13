@@ -203,7 +203,11 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "• /search 关键词\n"
         "• ?关键词（群内快捷搜索）\n"
         "• 仅授权群可用；群消息自动进索引\n"
-        "• 广告位编辑 ads/ads.json 后 /reload_ads",
+        "• 广告位编辑 ads/ads.json 后 /reload_ads\n\n"
+        "<b>部署注意</b>\n"
+        "1. @BotFather → /setprivacy → Disable（才能索引群消息）\n"
+        "2. 把 Bot 拉进授权群\n"
+        "3. 环境变量 ALLOWED_CHAT_IDS 填群 chat id（/myid 可查）",
         parse_mode="HTML",
     )
 
