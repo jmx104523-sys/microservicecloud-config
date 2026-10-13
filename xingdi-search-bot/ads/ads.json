@@ -1,8 +1,8 @@
 {
-  "top_ad": "📢 【置顶广告位】在此配置你的推广文案或链接",
+  "top_ad": "📢 星弟担保搜索群 @xddbssq — 涉及交易自行判断，不为任何人担保",
   "service_links": [
-    {"label": "官方频道", "url": "https://t.me/your_channel"},
-    {"label": "客服", "url": "https://t.me/your_support"}
+    {"label": "搜索群", "url": "https://t.me/xddbssq"},
+    {"label": "机器人", "url": "https://t.me/xdssyl_bot"}
   ],
-  "hot_searches": ["示例关键词A", "示例关键词B", "示例关键词C"]
+  "hot_searches": []
 }
