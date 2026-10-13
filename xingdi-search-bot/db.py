@@ -1,4 +1,4 @@
-"""搜索索引：默认 SQLite LIKE（中文友好）；可后续替换为 Elasticsearch / Meilisearch。"""
+"""搜索索引 + 采集源配置（SQLite，可后续替换为 ES）。"""
 
 from __future__ import annotations
 
@@ -15,6 +15,15 @@ class SearchHit:
     text: str
     media_type: str
     created_at: int
+
+
+@dataclass
+class SourceChat:
+    chat_id: int
+    title: str
+    username: str
+    chat_type: str  # group / supergroup / channel
+    enabled: bool
 
 
 class SearchIndex:
@@ -39,11 +48,125 @@ class SearchIndex:
                 UNIQUE(chat_id, message_id)
             );
             CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at DESC);
-            CREATE INDEX IF NOT EXISTS idx_messages_text ON messages(text);
+            CREATE INDEX IF NOT EXISTS idx_messages_chat ON messages(chat_id);
+
+            -- 采集源：群 / 频道
+            CREATE TABLE IF NOT EXISTS sources (
+                chat_id INTEGER PRIMARY KEY,
+                title TEXT NOT NULL DEFAULT '',
+                username TEXT NOT NULL DEFAULT '',
+                chat_type TEXT NOT NULL DEFAULT 'supergroup',
+                enabled INTEGER NOT NULL DEFAULT 1,
+                created_at INTEGER NOT NULL DEFAULT 0
+            );
+
+            -- 允许发起搜索的群（用户交互入口）
+            CREATE TABLE IF NOT EXISTS search_chats (
+                chat_id INTEGER PRIMARY KEY,
+                title TEXT NOT NULL DEFAULT '',
+                username TEXT NOT NULL DEFAULT '',
+                enabled INTEGER NOT NULL DEFAULT 1
+            );
             """
         )
         self.conn.commit()
 
+    # ---------- sources ----------
+    def add_source(
+        self,
+        *,
+        chat_id: int,
+        title: str = "",
+        username: str = "",
+        chat_type: str = "supergroup",
+        created_at: int = 0,
+    ) -> None:
+        self.conn.execute(
+            """
+            INSERT INTO sources (chat_id, title, username, chat_type, enabled, created_at)
+            VALUES (?, ?, ?, ?, 1, ?)
+            ON CONFLICT(chat_id) DO UPDATE SET
+              title=excluded.title,
+              username=excluded.username,
+              chat_type=excluded.chat_type,
+              enabled=1
+            """,
+            (chat_id, title or "", username or "", chat_type or "supergroup", created_at),
+        )
+        self.conn.commit()
+
+    def remove_source(self, chat_id: int) -> bool:
+        cur = self.conn.execute("DELETE FROM sources WHERE chat_id=?", (chat_id,))
+        self.conn.commit()
+        return cur.rowcount > 0
+
+    def list_sources(self, enabled_only: bool = False) -> list[SourceChat]:
+        sql = "SELECT chat_id, title, username, chat_type, enabled FROM sources"
+        if enabled_only:
+            sql += " WHERE enabled=1"
+        sql += " ORDER BY created_at DESC, chat_id DESC"
+        rows = self.conn.execute(sql).fetchall()
+        return [
+            SourceChat(
+                chat_id=r["chat_id"],
+                title=r["title"],
+                username=r["username"],
+                chat_type=r["chat_type"],
+                enabled=bool(r["enabled"]),
+            )
+            for r in rows
+        ]
+
+    def is_source(self, chat_id: int) -> bool:
+        row = self.conn.execute(
+            "SELECT 1 FROM sources WHERE chat_id=? AND enabled=1",
+            (chat_id,),
+        ).fetchone()
+        return row is not None
+
+    # ---------- search entry chats ----------
+    def add_search_chat(self, *, chat_id: int, title: str = "", username: str = "") -> None:
+        self.conn.execute(
+            """
+            INSERT INTO search_chats (chat_id, title, username, enabled)
+            VALUES (?, ?, ?, 1)
+            ON CONFLICT(chat_id) DO UPDATE SET
+              title=excluded.title,
+              username=excluded.username,
+              enabled=1
+            """,
+            (chat_id, title or "", username or ""),
+        )
+        self.conn.commit()
+
+    def remove_search_chat(self, chat_id: int) -> bool:
+        cur = self.conn.execute("DELETE FROM search_chats WHERE chat_id=?", (chat_id,))
+        self.conn.commit()
+        return cur.rowcount > 0
+
+    def list_search_chats(self) -> list[SourceChat]:
+        rows = self.conn.execute(
+            "SELECT chat_id, title, username, 'supergroup' AS chat_type, enabled FROM search_chats ORDER BY chat_id"
+        ).fetchall()
+        return [
+            SourceChat(
+                chat_id=r["chat_id"],
+                title=r["title"],
+                username=r["username"],
+                chat_type=r["chat_type"],
+                enabled=bool(r["enabled"]),
+            )
+            for r in rows
+        ]
+
+    def is_search_chat(self, chat_id: int) -> bool:
+        row = self.conn.execute(
+            "SELECT 1 FROM search_chats WHERE chat_id=? AND enabled=1",
+            (chat_id,),
+        ).fetchone()
+        return row is not None
+
+    # ---------- messages ----------
     def upsert_message(
         self,
         *,
@@ -75,21 +198,14 @@ class SearchIndex:
         q = (query or "").strip()
         if not q:
             return [], 0
-
-        # 多关键词 AND：每个词都要命中
         tokens = [t for t in q.split() if t]
         if not tokens:
             return [], 0
 
         where = " AND ".join(["text LIKE ?"] * len(tokens))
         params = [f"%{t}%" for t in tokens]
-
         cur = self.conn.cursor()
-        total = cur.execute(
-            f"SELECT COUNT(*) AS c FROM messages WHERE {where}",
-            params,
-        ).fetchone()["c"]
-
+        total = cur.execute(f"SELECT COUNT(*) AS c FROM messages WHERE {where}", params).fetchone()["c"]
         rows = cur.execute(
             f"""
             SELECT chat_id, message_id, chat_title, text, media_type, created_at
@@ -100,7 +216,6 @@ class SearchIndex:
             """,
             [*params, limit, offset],
         ).fetchall()
-
         hits = [
             SearchHit(
                 chat_id=r["chat_id"],
@@ -114,11 +229,25 @@ class SearchIndex:
         ]
         return hits, int(total)
 
+    def count_by_chat(self, chat_id: int) -> int:
+        row = self.conn.execute(
+            "SELECT COUNT(*) AS c FROM messages WHERE chat_id=?",
+            (chat_id,),
+        ).fetchone()
+        return int(row["c"])
+
     def stats(self) -> dict:
         cur = self.conn.cursor()
         total = cur.execute("SELECT COUNT(*) AS c FROM messages").fetchone()["c"]
         chats = cur.execute("SELECT COUNT(DISTINCT chat_id) AS c FROM messages").fetchone()["c"]
-        return {"messages": int(total), "chats": int(chats)}
+        sources = cur.execute("SELECT COUNT(*) AS c FROM sources WHERE enabled=1").fetchone()["c"]
+        search_chats = cur.execute("SELECT COUNT(*) AS c FROM search_chats WHERE enabled=1").fetchone()["c"]
+        return {
+            "messages": int(total),
+            "indexed_chats": int(chats),
+            "sources": int(sources),
+            "search_chats": int(search_chats),
+        }
 
     def close(self) -> None:
         self.conn.close()
