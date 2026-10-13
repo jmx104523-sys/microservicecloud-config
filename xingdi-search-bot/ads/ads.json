@@ -1,0 +1,8 @@
+{
+  "top_ad": "📢 【置顶广告位】在此配置你的推广文案或链接",
+  "service_links": [
+    {"label": "官方频道", "url": "https://t.me/your_channel"},
+    {"label": "客服", "url": "https://t.me/your_support"}
+  ],
+  "hot_searches": ["示例关键词A", "示例关键词B", "示例关键词C"]
+}
